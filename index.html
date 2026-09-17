@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2026 澎湖秋旅手冊 (10/01 - 10/03)</title>
+  <style>
+    :root {
+      --primary: #0077b6;
+      --secondary: #00b4d8;
+      --accent: #ff9f1c;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 75px; line-height: 1.5; }
+    
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #0077b6, #0096c7);
+      color: white;
+      padding: 24px 16px 16px;
+      text-align: center;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 119, 182, 0.15);
+    }
+    header h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+    header p { font-size: 0.85rem; opacity: 0.9; }
+
+    /* Container */
+    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+
+    /* Tab Content Control */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Timeline Items */
+    .timeline { position: relative; padding-left: 20px; margin-top: 10px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      background: #cbd5e1;
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 14px;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -19px;
+      top: 12px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .timeline-item.transit .timeline-dot { background: #94a3b8; box-shadow: 0 0 0 2px #94a3b8; }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 6px;
+    }
+    .card-time {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      background: #e0f2fe;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+    .card-cost {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #e67e22;
+      background: #fef3c7;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .card-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      margin-top: 4px;
+      color: #0f172a;
+    }
+    .card-location {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .card-notes {
+      font-size: 0.82rem;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: 8px;
+      margin-top: 8px;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+    .badge-alert {
+      display: inline-block;
+      font-size: 0.75rem;
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .btn-maps {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #e0f2fe;
+      color: var(--primary);
+      text-decoration: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+
+    /* Sub-nav for days */
+    .day-pills {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      position: sticky;
+      top: 8px;
+      z-index: 10;
+      background: var(--bg);
+      padding: 4px 0;
+    }
+    .day-pill {
+      flex: 1;
+      padding: 8px 0;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 10px;
+      background: #e2e8f0;
+      color: #475569;
+      border: none;
+      cursor: pointer;
+    }
+    .day-pill.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(0, 119, 182, 0.3);
+    }
+
+    /* Table cards */
+    .info-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    .info-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; color: var(--primary); }
+    .info-sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+    .price-tag { font-weight: bold; color: #d97706; }
+
+    /* Bottom Navigation Bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 62px;
+      background: #ffffff;
+      display: flex;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -3px 10px rgba(0,0,0,0.05);
+      z-index: 999;
+    }
+    .nav-btn {
+      flex: 1;
+      border: none;
+      background: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn span.icon { font-size: 1.2rem; margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🌊 2026 澎湖初秋 3 日遊</h1>
+    <p>10/01 (四) ~ 10/03 (六) ｜ 團員 5 人行</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- 行程 TAB -->
+    <section id="tab-itinerary" class="tab-content active">
+      <div class="day-pills">
+        <button class="day-pill active" onclick="switchDay('d1')">Day 1 (10/1)</button>
+        <button class="day-pill" onclick="switchDay('d2')">Day 2 (10/2)</button>
+        <button class="day-pill" onclick="switchDay('d3')">Day 3 (10/3)</button>
+      </div>
+
+      <!-- DAY 1 -->
+      <div id="day-d1" class="day-content">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">06:00 - 07:00 (1h)</span></div>
+              <div class="card-title">🛫 集合＋松山機場報到</div>
+              <div class="card-location">📍 臺北松山機場(TSA)</div>
+              <div class="card-notes">國內線建議提前1小時，帶身分證即可不需護照。</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">07:00 - 08:00 (1h)</span></div>
+              <div class="card-title">✈️ 華信航空 台北→馬公 (AE361)</div>
+              <div class="card-location">📍 TSA T2 → MZG</div>
+              <div class="card-notes">直飛，航程約1小時。手提7kg*1件、託運10kg。</div>
+            </div>
+          </div>
+          <div class="timeline-item transit">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">08:00 - 08:50 (50m)</span></div>
+              <div class="card-title">🚗 取車＋機場前往市區</div>
+              <div class="card-notes">領取7人座車輛，駕駛需攜帶駕照！</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">08:50 - 09:50 (1h)</span>
+                <span class="card-cost">預估 $60/人</span>
+              </div>
+              <div class="card-title">🍽️ 早餐：北辰市場 老張燒餅舖</div>
+              <div class="card-location">📍 馬公市北辰街20號880號1A20攤位</div>
+              <div class="card-notes">傳承50年古早味燒餅，招牌小燒餅/焦糖脆燒餅。越早去選擇越多，順逛北辰市場在地漁獲蔬果。</div>
+              <a href="https://maps.google.com/?q=北辰市場+老張燒餅舖+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">10:05 - 11:35 (1h30m)</span></div>
+              <div class="card-title">🏛️ 天后宮＋中央老街</div>
+              <div class="card-location">📍 澎湖縣馬公市中央里正義街1號</div>
+              <div class="card-notes">全臺最早媽祖廟，漫步古樸巷弄。</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">11:50 - 12:50 (1h)</span>
+                <span class="card-cost">預估 $250/人</span>
+              </div>
+              <div class="card-title">🍽️ 午餐：原味漁村小吃</div>
+              <div class="card-location">📍 馬公市中正路35-1號</div>
+              <div class="card-notes">必點招牌小管麵線、鮮蚵滷肉飯！</div>
+              <a href="https://maps.google.com/?q=原味漁村小吃+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">13:05 - 14:35 (1h30m)</span>
+                <span class="card-cost">全票 $80</span>
+              </div>
+              <div class="card-title">🏛️ 澎湖生活博物館</div>
+              <div class="card-location">📍 馬公市新生路327號</div>
+              <div class="card-notes">室內吹冷氣兼了解在地歷史民俗與文化。</div>
+              <a href="https://maps.google.com/?q=澎湖生活博物館" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">14:50 - 17:20 (2h30m)</span></div>
+              <div class="card-title">🏛️ 觀音亭＋西瀛虹橋</div>
+              <div class="card-location">📍 馬公市介壽路7號</div>
+              <div class="card-notes">退潮時漫步沙灘、賞夕陽海景。（🌧️ 雨備方案：改往海景室內咖啡廳）</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">17:30 - 19:00 (1h30m)</span>
+                <span class="card-cost">預估 $500/人</span>
+              </div>
+              <div class="card-title">🍽️ 晚餐：日新餐廳</div>
+              <div class="card-location">📍 馬公市石泉里24-20號 (06-921-2235)</div>
+              <div class="card-notes">在地高人氣平價海鮮熱炒，建議提早電話訂位。</div>
+              <a href="https://maps.google.com/?q=日新餐廳+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">19:10</span></div>
+              <div class="card-title">🏨 月橘Villa 辦理入住</div>
+              <div class="card-location">📍 馬公市五德里185號</div>
+              <div class="card-notes">享受獨棟泳池 Villa 設施放鬆休息。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAY 2 -->
+      <div id="day-d2" class="day-content" style="display:none;">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card" style="border-left: 4px solid #ef4444;">
+              <div class="card-header">
+                <span class="card-time">07:30 - 09:30 (2h)</span>
+                <span class="badge-alert">⚠️ 關鍵潮汐點</span>
+              </div>
+              <div class="card-title">🏛️ 奎壁山摩西分海</div>
+              <div class="card-location">📍 湖西鄉北寮村(奎壁山地質公園)</div>
+              <div class="card-notes">【依10/2實際潮汐排定，務必準時】
+當天乾潮為 08:25，官方參考安全通行時段僅 08:00 - 10:00（當天僅有此上午場，下午不通！）。建議 07:30 到場搶先卡位等待開放。</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">09:30 - 10:00</span>
+                <span class="card-cost">預估 $80/人</span>
+              </div>
+              <div class="card-title">🍽️ 早餐：湖西周邊早餐店</div>
+              <div class="card-notes">分海結束後於北寮/龍門周邊小吃店或超商簡單享用。</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">10:30 - 11:30 (1h)</span></div>
+              <div class="card-title">🏛️ 篤行十村眷村文化園區</div>
+              <div class="card-location">📍 馬公市新復路2巷22號</div>
+              <div class="card-notes">全台最老眷村（免門票），張雨生＆潘安邦故事館、特色文創小舖。</div>
+              <a href="https://maps.google.com/?q=篤行十村+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">12:00 - 12:50 (50m)</span>
+                <span class="card-cost">預估 $130/人</span>
+              </div>
+              <div class="card-title">🍽️ 午餐：馬路益燒肉飯</div>
+              <div class="card-location">📍 馬公市光明路21號</div>
+              <div class="card-notes">1985在地老店！招牌燒肉飯、雙拼花枝排飯、炸雞腿飯。</div>
+              <a href="https://maps.google.com/?q=馬路益燒肉飯+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">13:20 - 14:05 (45m)</span></div>
+              <div class="card-title">🏛️ 風櫃洞(聽濤)＋幽浮涼亭</div>
+              <div class="card-location">📍 馬公市風櫃里</div>
+              <div class="card-notes">柱狀節理海蝕洞浪濤聲，白色幽浮涼亭超好拍。純陸地步道不下水。</div>
+              <a href="https://maps.google.com/?q=風櫃洞+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">14:20 - 15:00 (40m)</span></div>
+              <div class="card-title">🏛️ 蛇頭山風景區</div>
+              <div class="card-location">📍 馬公市風櫃里蛇頭山</div>
+              <div class="card-notes">遙望馬公內海與跨海大橋，安靜悠閒的林蔭海景步道。</div>
+              <a href="https://maps.google.com/?q=蛇頭山+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">15:30 - 16:05</span>
+                <span class="card-cost">約 $65/人</span>
+              </div>
+              <div class="card-title">🍧 甜點：玉冠嫩仙草</div>
+              <div class="card-location">📍 馬公市民福路32號</div>
+              <div class="card-notes">排隊名店！翡翠嫩仙草綜合冰。純外帶無座位，此時段已預留排隊與享用時間。</div>
+              <a href="https://maps.google.com/?q=玉冠嫩仙草+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">16:30 - 17:10 (40m)</span></div>
+              <div class="card-title">🏛️ 隘門沙灘</div>
+              <div class="card-location">📍 湖西鄉隘門村</div>
+              <div class="card-notes">澎湖最長黃金貝殼沙灘、紅色裝置藝術打卡。</div>
+              <a href="https://maps.google.com/?q=隘門沙灘+湖西鄉" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">17:35 - 19:05 (1h30m)</span>
+                <span class="card-cost">預估 $600/人</span>
+              </div>
+              <div class="card-title">🍽️ 晚餐：華珍活海鮮</div>
+              <div class="card-location">📍 馬公市三民路2號 (0929-052-259)</div>
+              <div class="card-notes">生猛海鮮時價計價，豐盛海味晚餐。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAY 3 -->
+      <div id="day-d3" class="day-content" style="display:none;">
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">08:00 - 08:45</span></div>
+              <div class="card-title">🍽️ 早餐 ＋ 退房 Check-out</div>
+              <div class="card-notes">行李全數上車，開啟北環跨海大橋公路之旅！</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">09:25 - 10:00 (35m)</span></div>
+              <div class="card-title">🏛️ 澎湖跨海大橋 ＋ 通樑古榕</div>
+              <div class="card-location">📍 白沙鄉通梁村</div>
+              <div class="card-notes">地標大橋拱門合影、欣賞超過300年神木榕樹氣根奇景。</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">10:20 - 11:00 (40m)</span></div>
+              <div class="card-title">🏛️ 大菓葉玄武岩</div>
+              <div class="card-location">📍 西嶼鄉大菓葉村</div>
+              <div class="card-notes">壯觀世界級柱狀玄武岩地景壁畫。</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">11:20 - 12:30 (70m)</span></div>
+              <div class="card-title">🏛️ 二崁聚落古厝巷弄</div>
+              <div class="card-location">📍 西嶼鄉二崁村</div>
+              <div class="card-notes">百年傳統古厝聚落群，推薦品嚐香濃杏仁茶或古早味豆花。</div>
+              <a href="https://maps.google.com/?q=二崁聚落+西嶼" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">12:40 - 13:40</span>
+                <span class="card-cost">預估 $250/人</span>
+              </div>
+              <div class="card-title">🍽️ 午餐：川七小吃店</div>
+              <div class="card-location">📍 西嶼鄉二崁村34號</div>
+              <div class="card-notes">招牌小管麵線、海鮮炒麵。</div>
+              <a href="https://maps.google.com/?q=川七小吃店+西嶼" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">14:00 - 15:00</span>
+                <span class="card-cost">全票 $30</span>
+              </div>
+              <div class="card-title">🏛️ 西嶼西臺古堡</div>
+              <div class="card-location">📍 西嶼鄉外垵村278號</div>
+              <div class="card-notes">一級古蹟清代防禦砲臺與拱形甬道探秘。</div>
+              <a href="https://maps.google.com/?q=西嶼西臺+澎湖" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">15:40 - 17:00 (80m)</span></div>
+              <div class="card-title">🛍️ 中央老街＋四眼井 伴手禮採買</div>
+              <div class="card-location">📍 馬公市中央街一帶</div>
+              <div class="card-notes">黑糖糕、干貝醬、花生酥採買時間。</div>
+              <a href="https://maps.google.com/?q=中央老街+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">17:20 - 18:50</span>
+                <span class="card-cost">預估 $500/人</span>
+              </div>
+              <div class="card-title">🍽️ 晚餐：清香海鮮店</div>
+              <div class="card-location">📍 馬公市三民路4號 (06-927-1449)</div>
+              <div class="card-notes">登機前的最後澎湖道地海鮮盛宴！</div>
+              <a href="https://maps.google.com/?q=清香海鮮店+馬公" target="_blank" class="btn-maps">🗺️ 開啟地圖導航</a>
+            </div>
+          </div>
+          <div class="timeline-item" style="border-left: 4px solid #ef4444;">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header">
+                <span class="card-time">19:10 - 19:50</span>
+                <span class="badge-alert">⏰ 最晚19:50安檢</span>
+              </div>
+              <div class="card-title">🚗 還車 ＋ 報到與安全檢查</div>
+              <div class="card-location">📍 馬公機場 (MZG)</div>
+              <div class="card-notes">19:10-19:30 還車與櫃檯 Check-in 取登機證。
+立榮/華信規定：表定起飛前 30 分鐘（最遲 19:50 前）必須完成航警安檢進入候機室！</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="card">
+              <div class="card-header"><span class="card-time">20:20 - 21:15</span></div>
+              <div class="card-title">✈️ 賦歸：馬公 (MZG) → 台北松山 (TSA)</div>
+              <div class="card-notes">回程返抵台北，結束充實的澎湖之旅！</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 交通住宿 TAB -->
+    <section id="tab-stay" class="tab-content">
+      <div class="info-card">
+        <div class="info-title">✈️ 來回航班時刻</div>
+        <div style="font-size:0.85rem; line-height: 1.6;">
+          <p><strong>去程 (10/01)：</strong>華信航空 AE361｜TSA 07:00 ➔ MZG 08:00</p>
+          <p><strong>回程 (10/03)：</strong>立榮航空 B78630｜MZG 20:20/20:55 ➔ TSA 21:50</p>
+          <p style="color:var(--muted); font-size:0.75rem;">行李規定：手提 7kg / 託運 10kg 每人</p>
+        </div>
+      </div>
+
+      <div class="info-card" style="border: 2px solid var(--primary);">
+        <div class="info-title">🏨 本次入住：月橘Villa</div>
+        <div class="info-sub">⭐ 4.5星 ｜ 馬公市五德里185號</div>
+        <p style="font-size:0.82rem; margin-bottom:8px;">特色：獨立雙臥室、可寄放行李、免費停車、私人放鬆空間。</p>
+        <p class="price-tag">均攤約 $1,887 / 人 / 晚</p>
+      </div>
+
+      <div class="info-card">
+        <div class="info-title">📋 備選民宿參考評比</div>
+        <ul style="font-size:0.8rem; line-height: 1.8; padding-left: 16px; color:#475569;">
+          <li><strong>旅者篝火民宿：</strong>5.0星 ($986/人晚) 附早餐、免費停車</li>
+          <li><strong>澎湖鹿角民宿：</strong>5.0星 ($1,047/人晚) 西衛里、免費停車</li>
+          <li><strong>5+1 民宿：</strong>4.9星 ($1,051/人晚) 西衛里</li>
+          <li><strong>期遇度假會館：</strong>5.0星 ($1,142/人晚) 西衛里、附早餐</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 租車 TAB -->
+    <section id="tab-rental" class="tab-content">
+      <div class="info-card">
+        <div class="info-title">🚗 博明國際租賃 (推薦 4.9⭐)</div>
+        <div class="info-sub">湖西鄉隘門村隘門118-15號</div>
+        <p style="font-size:0.85rem;"><strong>TOYOTA SIENTA (7人座)：</strong>承租價 $2,300/日</p>
+        <p style="font-size:0.85rem;"><strong>MG G50 PLUS (7人座)：</strong>承租價 $2,500/日</p>
+      </div>
+      <div class="info-card">
+        <div class="info-title">🚗 帝威租車行 (4.7⭐)</div>
+        <div class="info-sub">湖西鄉隘門村116-8號</div>
+        <p style="font-size:0.85rem;"><strong>TOYOTA WISH：</strong>$2,100/日</p>
+        <p style="font-size:0.85rem;"><strong>TOYOTA SIENTA：</strong>$2,500/日</p>
+        <p style="font-size:0.85rem;"><strong>MG G50 PLUS：</strong>$2,800/日</p>
+      </div>
+      <div class="info-card">
+        <div class="info-title">🚗 日昇小客車租賃 (4.1⭐)</div>
+        <div class="info-sub">湖西鄉隘門村118之10號</div>
+        <p style="font-size:0.85rem;">WISH 2.0 / 現代 CUSTIN 1.5（優惠價另洽）</p>
+      </div>
+    </section>
+
+    <!-- 費用 TAB -->
+    <section id="tab-budget" class="tab-content">
+      <div class="info-card">
+        <div class="info-title">💰 每人預估費用明細</div>
+        <table style="width:100%; font-size:0.85rem; border-collapse: collapse; margin-top:8px;">
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>🛫 來回機票</td>
+            <td align="right">NT$ 3,867</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>🏨 住宿 (月橘Villa/2晚估算)</td>
+            <td align="right">NT$ 1,972</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>🍽️ 三日餐食預估</td>
+            <td align="right">NT$ 2,615</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>🏛️ 門票 (生博館+西臺)</td>
+            <td align="right">NT$ 110</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>🚗 7人座租車均攤</td>
+            <td align="right">NT$ 1,500</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>⛽ 3天油資/停車均攤</td>
+            <td align="right">NT$ 100</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0; height:32px;">
+            <td>🛍️ 預估伴手禮購物</td>
+            <td align="right">NT$ 2,500</td>
+          </tr>
+          <tr style="height:38px; font-weight:bold; color:var(--primary); font-size:0.95rem;">
+            <td>總計 / 每人預估</td>
+            <td align="right">約 NT$ 12,664</td>
+          </tr>
+        </table>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:8px;">* 租車碰撞自負額保險另計。</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 底部導覽列 -->
+  <nav class="bottom-bar">
+    <button class="nav-btn active" onclick="switchTab('itinerary', this)">
+      <span class="icon">📅</span>行程
+    </button>
+    <button class="nav-btn" onclick="switchTab('stay', this)">
+      <span class="icon">🏨</span>機酒
+    </button>
+    <button class="nav-btn" onclick="switchTab('rental', this)">
+      <span class="icon">🚗</span>租車
+    </button>
+    <button class="nav-btn" onclick="switchTab('budget', this)">
+      <span class="icon">💵</span>預算
+    </button>
+  </nav>
+
+  <script>
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      el.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function switchDay(dayId) {
+      document.querySelectorAll('.day-content').forEach(dc => dc.style.display = 'none');
+      document.querySelectorAll('.day-pill').forEach(pill => pill.classList.remove('active'));
+      document.getElementById('day-' + dayId).style.display = 'block';
+      event.currentTarget.classList.add('active');
+    }
+  </script>
+</body>
+</html>
