@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>2026 澎湖秋旅手冊 (10/01 - 10/03)</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    :root {
+      --primary: #0077b6;
+      --secondary: #00b4d8;
+      --accent: #ff9f1c;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 75px; line-height: 1.5; }
+
+    header {
+      background: linear-gradient(135deg, #0077b6, #0096c7);
+      color: white;
+      padding: 24px 16px 16px;
+      text-align: center;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 119, 182, 0.15);
+    }
+    header h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 4px; }
+    header p { font-size: 0.85rem; opacity: 0.9; }
+    header .sync-note { font-size: 0.7rem; opacity: 0.75; margin-top: 6px; }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .timeline { position: relative; padding-left: 20px; margin-top: 10px; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      background: #cbd5e1;
+    }
+    .timeline-item { position: relative; margin-bottom: 14px; }
+    .timeline-dot {
+      position: absolute;
+      left: -19px;
+      top: 12px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: 2px solid white;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .timeline-item.transit .timeline-dot { background: #94a3b8; box-shadow: 0 0 0 2px #94a3b8; }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; flex-wrap: wrap; gap: 4px; }
+    .card-header-left, .card-header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card-time {
+      font-size: 0.75rem; font-weight: 700; color: var(--primary);
+      background: #e0f2fe; padding: 2px 8px; border-radius: 12px; display: inline-block;
+    }
+    .card-cost { font-size: 0.75rem; font-weight: 600; color: #e67e22; background: #fef3c7; padding: 2px 8px; border-radius: 12px; }
+    .card-title { font-size: 0.98rem; font-weight: 700; margin-top: 4px; color: #0f172a; }
+    .card-location { font-size: 0.8rem; color: var(--muted); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+    .card-notes {
+      font-size: 0.82rem; color: #475569; background: #f1f5f9; padding: 8px 10px;
+      border-radius: 8px; margin-top: 8px; line-height: 1.4; white-space: pre-line;
+    }
+    .badge-alert {
+      display: inline-block; font-size: 0.75rem; background: #fee2e2; color: #dc2626;
+      padding: 2px 6px; border-radius: 4px; font-weight: bold;
+    }
+    .badge-reserved { display: inline-block; font-size: 0.75rem; color: #7c3aed; font-weight: 700; }
+    .btn-maps {
+      display: inline-flex; align-items: center; gap: 4px; background: #e0f2fe; color: var(--primary);
+      text-decoration: none; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem;
+      font-weight: 600; margin-top: 8px; margin-right: 6px;
+    }
+
+    .timeline-item.transit { margin-bottom: 8px; }
+    .timeline-item.transit .timeline-dot { top: 6px; width: 8px; height: 8px; left: -17px; }
+    .transit-row {
+      display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px;
+      padding: 3px 2px 3px 0; font-size: 0.78rem; color: var(--muted);
+    }
+    .transit-row .t-time { font-weight: 700; color: #94a3b8; white-space: nowrap; font-size: 0.72rem; }
+    .transit-row .t-text { flex: 1; min-width: 0; }
+
+    .day-pills {
+      display: flex; gap: 8px; margin-bottom: 12px; position: sticky; top: 8px; z-index: 10;
+      background: var(--bg); padding: 4px 0;
+    }
+    .day-pill {
+      flex: 1; padding: 8px 0; text-align: center; font-size: 0.85rem; font-weight: 700;
+      border-radius: 10px; background: #e2e8f0; color: #475569; border: none; cursor: pointer;
+    }
+    .day-pill.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(0, 119, 182, 0.3); }
+
+    .info-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border); }
+    .info-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; color: var(--primary); }
+    .info-sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+    .price-tag { font-weight: bold; color: #d97706; }
+
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 62px; background: #ffffff;
+      display: flex; border-top: 1px solid var(--border); box-shadow: 0 -3px 10px rgba(0,0,0,0.05); z-index: 999;
+    }
+    .nav-btn {
+      flex: 1; border: none; background: none; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; color: var(--muted); font-size: 0.7rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn span.icon { font-size: 1.2rem; margin-bottom: 2px; }
+
+    .status-msg { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 0.9rem; }
+    .status-msg.error { color: #dc2626; }
+
+    .settle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 10px; margin-bottom: 8px; font-size: 0.88rem;
+    }
+    .settle-row .arrow { color: #16a34a; font-weight: 700; margin: 0 6px; }
+    .settle-row .amt { font-weight: 700; color: #16a34a; }
+    .balance-chip {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+      border-radius: 20px; font-size: 0.78rem; font-weight: 700; margin: 3px 4px 3px 0;
+    }
+    .balance-chip.pos { background: #dcfce7; color: #16a34a; }
+    .balance-chip.neg { background: #fee2e2; color: #dc2626; }
+    .balance-chip.zero { background: #f1f5f9; color: #64748b; }
+    .expense-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem;
+    }
+    .expense-row:last-child { border-bottom: none; }
+    .expense-main { flex: 1; }
+    .expense-item { font-weight: 700; color: #0f172a; }
+    .expense-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .expense-amt { font-weight: 700; color: #e67e22; white-space: nowrap; margin-left: 10px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 id="page-title">🌊 2026 澎湖初秋 3 日遊</h1>
+    <p id="page-sub">10/01 (四) ~ 10/03 (六) ｜ 團員 5 人行</p>
+    <p class="sync-note" id="sync-status">資料同步中…</p>
+  </header>
+
+  <div class="container">
+
+    <section id="tab-itinerary" class="tab-content active">
+      <div class="day-pills" id="day-pills"></div>
+      <div id="day-panels">
+        <div class="status-msg" id="itinerary-status">載入行程資料中…</div>
+      </div>
+    </section>
+
+    <section id="tab-stay" class="tab-content">
+      <div id="stay-content"><div class="status-msg">載入中…</div></div>
+    </section>
+
+    <section id="tab-rental" class="tab-content">
+      <div id="rental-content"><div class="status-msg">載入中…</div></div>
+    </section>
+
+    <section id="tab-budget" class="tab-content">
+      <div id="budget-content"><div class="status-msg">載入中…</div></div>
+    </section>
+
+    <section id="tab-split" class="tab-content">
+      <div id="split-content"><div class="status-msg">載入中…</div></div>
+    </section>
+
+  </div>
+
+  <nav class="bottom-bar">
+    <button class="nav-btn active" onclick="switchTab('itinerary', this)"><span class="icon">📅</span>行程</button>
+    <button class="nav-btn" onclick="switchTab('stay', this)"><span class="icon">🏨</span>機酒</button>
+    <button class="nav-btn" onclick="switchTab('rental', this)"><span class="icon">🚗</span>租車</button>
+    <button class="nav-btn" onclick="switchTab('budget', this)"><span class="icon">💵</span>預算</button>
+    <button class="nav-btn" onclick="switchTab('split', this)"><span class="icon">🧾</span>分帳</button>
+  </nav>
+
+  <script>
+    // ===== 三個已發布的 Google 試算表 CSV 來源 =====
+    // 改用 gviz API 端點：發佈到網路的 pub?output=csv 連結在瀏覽器 fetch() 時
+    // Google 伺服器不會回傳 CORS 授權標頭，會被瀏覽器擋下（Failed to fetch）。
+    // gviz/tq 端點是 Google 設計給外部網頁抓資料用的，會正常回傳 CORS 授權。
+    const SHEET_ID = '1GbrRAz9cUFFwM8cjyRI6_mt7Aw8MLPFamwIlQoAP7Hg';
+    function gvizCsv(gid) {
+      return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+    }
+    const CSV_URLS = {
+      itinerary: gvizCsv('934668885'),
+      transport: gvizCsv('1666097659'),
+      rental: gvizCsv('1427163954'),
+      split: gvizCsv('1601743212')
+    };
+
+    const DAY_META = {
+      D1: { label: 'Day 1 (10/1 Thu.)' },
+      D2: { label: 'Day 2 (10/2 Fri.)' },
+      D3: { label: 'Day 3 (10/3 Sat.)' }
+    };
+
+    function esc(s) {
+      if (s === null || s === undefined) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function nl2br(s) { return esc(s).replace(/\n/g, '<br>'); }
+
+    function fetchCsv(url) {
+      return fetch(url).then(r => {
+        if (!r.ok) throw new Error('CSV 讀取失敗: ' + r.status);
+        return r.text();
+      }).then(text => Papa.parse(text, { skipEmptyLines: false }).data);
+    }
+
+    function parseMapLinks(refLink) {
+      if (!refLink) return [];
+      // 同時支援「有 https:// 前綴」與「漏打 https:// 只寫 maps.app.goo.gl/xxx／goo.gl/xxx」兩種寫法
+      const urlRegex = /(?:https?:\/\/)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com)\/[^\s|;，、]+/g;
+      const matches = [...refLink.matchAll(urlRegex)];
+      if (!matches.length) return [];
+      const results = [];
+      let lastEnd = 0;
+      matches.forEach((m, idx) => {
+        let url = m[0];
+        if (!/^https?:\/\//.test(url)) url = 'https://' + url; // 補上缺少的協定前綴
+        let label = refLink.slice(lastEnd, m.index).replace(/^[|;,，、\s]+/, '').replace(/[|;,，、\s]+$/, '').trim();
+        if (!label) label = matches.length > 1 ? `導航${['①','②','③','④','⑤'][idx] || (idx + 1)}` : '開啟地圖導航';
+        results.push({ label, url });
+        lastEnd = m.index + m[0].length;
+      });
+      return results;
+    }
+
+    function extractReserved(notes) {
+      const m = notes.match(/📅\s*已訂位[\(（]\s*([0-9:]+)/);
+      if (!m) return { notes, reservedTime: null };
+      const cleaned = notes.replace(/📅\s*已訂位[\(（][^)）]*[\)）]\s*/, '').trim();
+      return { notes: cleaned, reservedTime: m[1] };
+    }
+
+    function isTransitRow(title, category) {
+      const t = (title || '').trim();
+      return /^(🚗|🚶)/.test(t);
+    }
+
+    function buildTransitRow(timeRange, title, notes) {
+      const text = notes ? (title + ' · ' + notes) : title;
+      return `<div class="timeline-item transit">
+        <div class="timeline-dot"></div>
+        <div class="transit-row">
+          <span class="t-time">${esc(timeRange)}</span>
+          <span class="t-text">${nl2br(text)}</span>
+        </div>
+      </div>`;
+    }
+
+    function buildCard(row) {
+      const { timeRange, title, address, notes, category, cost, alertBorder, refLink } = row;
+      let { notes: cleanNotes, reservedTime } = extractReserved(notes || '');
+      const alert = /⚠️/.test(title) || /關鍵潮汐/.test(cleanNotes) ? '⚠️ 關鍵潮汐點' : null;
+      const style = alertBorder ? ' style="border-left: 4px solid #ef4444;"' : '';
+      let html = `<div class="timeline-item"><div class="timeline-dot"></div><div class="card"${style}>`;
+      html += `<div class="card-header"><div class="card-header-left"><span class="card-time">${esc(timeRange)}</span>`;
+      if (reservedTime) html += `<span class="badge-reserved">已訂位(${esc(reservedTime)})</span>`;
+      html += `</div><div class="card-header-right">`;
+      if (cost) html += `<span class="card-cost">${esc(cost)}</span>`;
+      if (alert) html += `<span class="badge-alert">${esc(alert)}</span>`;
+      html += `</div></div><div class="card-title">${esc(title)}</div>`;
+      if (address) html += `<div class="card-location">📍 ${esc(address)}</div>`;
+      if (cleanNotes) html += `<div class="card-notes">${nl2br(cleanNotes)}</div>`;
+      // 導航連結優先順序：① 試算表「參考連結」欄自己指定的網址 → ② 程式碼裡寫死的對照表 → ③ 自動組Google搜尋連結
+      // 「參考連結」欄支援多個連結：用分號 ; 隔開；每段可用「名稱|網址」指定按鈕文字，不寫名稱則自動編號
+      if (row.showMap) {
+        parseMapLinks(refLink).forEach(({ label, url }) => {
+          html += `<a href="${esc(url)}" target="_blank" class="btn-maps">🗺️ ${esc(label)}</a>`;
+        });
+      }
+      html += `</div></div>`;
+      return html;
+    }
+
+    function costLabel(costRaw) {
+      if (!costRaw || costRaw.trim() === '' || costRaw.trim() === '-') return null;
+      const n = costRaw.trim();
+      if (/^\d/.test(n)) return `約 $${n}/人`;
+      return n; // e.g. "自行斟酌", "全票 $40" style already in text
+    }
+
+    function renderItinerary(rows) {
+      // Column indices per known header: 天次,時間起,時間訖,時長,行程,地點/地址,備註,費用類別,費用估列,參考連結
+      // 直接找「第一欄真的是 D1/D2/D3 這種資料」的那一列，不管前面有幾列標題／說明列，
+      // 避免依賴固定列數或特定標題文字造成漏抓第一筆
+      let startIdx = -1;
+      for (let hi = 0; hi < rows.length; hi++) {
+        if (rows[hi] && /^D\d$/.test((rows[hi][0] || '').trim())) { startIdx = hi; break; }
+      }
+      if (startIdx < 0) startIdx = 2;
+      const days = {};
+      for (let i = startIdx; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length < 5) continue;
+        const day = (r[0] || '').trim();
+        if (!/^D\d$/.test(day)) continue;
+        if (!days[day]) days[day] = [];
+        days[day].push({
+          time1: r[1] || '', time2: r[2] || '', dur: r[3] || '',
+          title: (r[4] || '').trim(), address: (r[5] || '').trim(),
+          notes: (r[6] || '').trim(), category: (r[7] || '').trim(),
+          costRaw: (r[8] || '').trim(), refLink: (r[9] || '').trim()
+        });
+      }
+      const dayKeys = Object.keys(days).sort();
+      const pillsEl = document.getElementById('day-pills');
+      const panelsEl = document.getElementById('day-panels');
+      pillsEl.innerHTML = '';
+      panelsEl.innerHTML = '';
+      dayKeys.forEach((dk, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'day-pill' + (idx === 0 ? ' active' : '');
+        btn.textContent = (DAY_META[dk] && DAY_META[dk].label) || dk;
+        btn.onclick = () => switchDay(dk, btn);
+        pillsEl.appendChild(btn);
+
+        const panel = document.createElement('div');
+        panel.className = 'day-content';
+        panel.id = 'day-' + dk;
+        panel.style.display = idx === 0 ? 'block' : 'none';
+        const tl = document.createElement('div');
+        tl.className = 'timeline';
+        let html = '';
+        days[dk].forEach(item => {
+          const timeRange = item.time2 === '--' ? item.time1 : `${item.time1} - ${item.time2}` + (item.dur && item.dur !== '--' ? ` (${item.dur})` : '');
+          const isTransit = isTransitRow(item.title, item.category);
+          if (isTransit) {
+            html += buildTransitRow(timeRange, item.title, item.notes);
+          } else {
+            const cost = costLabel(item.costRaw);
+            const alertBorder = /報到手續|安檢|還車/.test(item.title) && /機場|MZG/.test(item.address);
+            html += buildCard({
+              timeRange, title: item.title, address: item.address, notes: item.notes,
+              category: item.category, cost, alertBorder, showMap: true, refLink: item.refLink
+            });
+          }
+        });
+        tl.innerHTML = html;
+        panel.appendChild(tl);
+        panelsEl.appendChild(panel);
+      });
+    }
+
+    function switchDay(dayId, el) {
+      document.querySelectorAll('.day-content').forEach(dc => dc.style.display = 'none');
+      document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('active'));
+      document.getElementById('day-' + dayId).style.display = 'block';
+      el.classList.add('active');
+    }
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      el.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderStay(rows) {
+      // find flight rows (header: 方案,日期,方向,航班,...) and lodging block (名稱,google評價,特色說明,...)
+      let flightRows = [];
+      let lodgingRow = null;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r) continue;
+        if (r[1] && /^\d{4}-\d{2}-\d{2}$/.test((r[1]||'').trim())) {
+          flightRows.push(r);
+        }
+        if (r[0] && r[0].trim() && r[1] && /^\d/.test((r[1]||'').trim()) === false && r[8] !== undefined && /評價/.test('') ) {
+          // handled below by header detection instead
+        }
+      }
+      // lodging: find row right after a header row containing "google評價"
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i] && rows[i][1] === 'google評價') {
+          const d = rows[i+1];
+          if (d) lodgingRow = d;
+          break;
+        }
+      }
+
+      let html = '';
+      if (flightRows.length) {
+        html += `<div class="info-card"><div class="info-title">✈️ 來回航班時刻</div><div style="font-size:0.85rem; line-height:1.6;">`;
+        flightRows.forEach(f => {
+          const dir = (f[2]||'').trim();
+          const flight = (f[3]||'').replace(/\n/g,' ').trim();
+          const dep = (f[4]||'').trim(), arr = (f[5]||'').trim();
+          const t1 = (f[6]||'').trim(), t2 = (f[7]||'').trim();
+          const date = (f[1]||'').trim();
+          if (!dir) return;
+          html += `<p><strong>${esc(dir)} (${esc(date)})：</strong>${esc(flight)}｜${esc(dep)} ${esc(t1)} ➔ ${esc(arr)} ${esc(t2)}</p>`;
+        });
+        html += `<p style="color:var(--muted); font-size:0.75rem;">來回機票依實際各自訂購價格為準。</p></div></div>`;
+      }
+      if (lodgingRow) {
+        const name = (lodgingRow[0]||'').trim();
+        const rating = (lodgingRow[1]||'').trim();
+        const desc = (lodgingRow[2]||'').trim();
+        const link = (lodgingRow[6]||'').trim();
+        const perNight = (lodgingRow[8]||'').trim();
+        const note = (lodgingRow[9]||'').trim();
+        html += `<div class="info-card" style="border: 2px solid var(--primary);">
+          <div class="info-title">🏨 本次入住：${esc(name)}</div>
+          <div class="info-sub">⭐ ${esc(rating)}</div>
+          <p style="font-size:0.82rem; margin-bottom:8px;">${nl2br(desc)}</p>
+          <p style="font-size:0.82rem; margin-bottom:8px; color:var(--muted);">${nl2br(note)}</p>
+          <p class="price-tag">均攤約 $${esc(perNight)} / 人 / 晚</p>`;
+        if (link) html += `<a href="${link}" target="_blank" class="btn-maps">🔗 訂房連結</a>`;
+        html += `</div>`;
+      }
+      document.getElementById('stay-content').innerHTML = html || '<div class="status-msg error">找不到機酒資料</div>';
+
+      // ---- budget table lives in the same sheet ----
+      let budgetStart = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i] && rows[i][0] === '費用項目') { budgetStart = i + 1; break; }
+      }
+      let bHtml = '';
+      if (budgetStart >= 0) {
+        bHtml += `<div class="info-card"><div class="info-title">💰 每人預估費用明細</div>
+          <table style="width:100%; font-size:0.85rem; border-collapse: collapse; margin-top:8px;">`;
+        const ICONS = { '來回機票':'🛫','住宿':'🏨','餐食':'🍽️','景點':'🏛️','活動':'🚢','購物':'🛍️','租車':'🚗','油資/停車':'⛽','租車保險':'🛡️' };
+        for (let i = budgetStart; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r || !r[0]) continue;
+          const item = r[0].trim();
+          const desc = (r[1]||'').trim();
+          const val = (r[8]||'').trim();
+          if (!item) continue;
+          if (item === '合計') {
+            bHtml += `<tr style="font-weight:bold; color:var(--primary); font-size:0.95rem;"><td style="padding:8px 0;">${esc(item)} / 每人預估</td><td align="right" style="white-space:nowrap; padding-left:10px;">約 NT$ ${esc(val)}</td></tr>`;
+          } else {
+            const icon = ICONS[item] || '•';
+            const label = desc ? `${item} (${desc})` : item;
+            bHtml += `<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:6px 0;">${icon} ${esc(label)}</td><td align="right" style="white-space:nowrap; padding-left:10px; vertical-align:top; padding-top:6px;">NT$ ${esc(val)}</td></tr>`;
+          }
+        }
+        bHtml += `</table><p style="font-size:0.75rem; color:var(--muted); margin-top:8px;">* 租車保險費用另計（自費投保）；機票依實際各自訂購價格為準。</p></div>`;
+      }
+      document.getElementById('budget-content').innerHTML = bHtml || '<div class="status-msg error">找不到預算資料</div>';
+    }
+
+    function renderRental(rows) {
+      let html = '';
+      let current = null;
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length < 6) continue;
+        const seq = (r[0]||'').trim();
+        const shop = (r[1]||'').trim();
+        const rating = (r[2]||'').trim();
+        const addr = (r[3]||'').trim();
+        const car = (r[4]||'').trim();
+        const price = (r[5]||'').trim();
+        const link = (r[6]||'').trim();
+        if (seq || shop) {
+          if (current) html += current.close();
+          current = {
+            shop, rating, addr, link, cars: [],
+            close: function() {
+              let h = `<div class="info-card"><div class="info-title">🚗 ${esc(this.shop)}${this.rating ? ' ('+esc(this.rating)+'⭐)' : ''}</div>`;
+              if (this.addr) h += `<div class="info-sub">${esc(this.addr)}</div>`;
+              this.cars.forEach(c => { h += `<p style="font-size:0.85rem;"><strong>${esc(c.car)}：</strong>${esc(c.price)}</p>`; });
+              if (this.link) h += `<a href="${this.link}" target="_blank" class="btn-maps">🔗 車行資訊</a>`;
+              h += `</div>`;
+              return h;
+            }
+          };
+        }
+        if (current && car) current.cars.push({ car, price });
+      }
+      if (current) html += current.close();
+      document.getElementById('rental-content').innerHTML = html || '<div class="status-msg error">找不到租車資料</div>';
+    }
+
+    function parseAmount(s) {
+      if (!s) return 0;
+      const n = parseFloat(String(s).replace(/[,\s]/g, ''));
+      return isNaN(n) ? 0 : n;
+    }
+
+    function computeSettlement(balance) {
+      const creditors = [], debtors = [];
+      for (const name in balance) {
+        const amt = balance[name];
+        if (amt > 0.5) creditors.push({ name, amt });
+        else if (amt < -0.5) debtors.push({ name, amt: -amt });
+      }
+      creditors.sort((a, b) => b.amt - a.amt);
+      debtors.sort((a, b) => b.amt - a.amt);
+      const transactions = [];
+      let i = 0, j = 0;
+      while (i < debtors.length && j < creditors.length) {
+        const pay = Math.min(debtors[i].amt, creditors[j].amt);
+        transactions.push({ from: debtors[i].name, to: creditors[j].name, amount: Math.round(pay) });
+        debtors[i].amt -= pay;
+        creditors[j].amt -= pay;
+        if (debtors[i].amt < 0.5) i++;
+        if (creditors[j].amt < 0.5) j++;
+      }
+      return transactions;
+    }
+
+    function renderSplit(rows) {
+      if (!rows.length) {
+        document.getElementById('split-content').innerHTML = '<div class="status-msg error">找不到分攤資料</div>';
+        return;
+      }
+      // 成員名單：G欄 (index 6)，從資料列開始，逐列收集非空值
+      const members = [];
+      const expenses = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r) continue;
+        const memberName = (r[6] || '').trim();
+        if (memberName && !members.includes(memberName)) members.push(memberName);
+        const item = (r[1] || '').trim();
+        if (item) {
+          const date = (r[0] || '').trim();
+          const amount = parseAmount(r[2]);
+          const payer = (r[3] || '').trim();
+          const sharers = (r[4] || '').split(/[,、]/).map(s => s.trim()).filter(Boolean);
+          if (payer && amount > 0 && sharers.length) {
+            expenses.push({ date, item, amount, payer, sharers });
+          }
+        }
+      }
+
+      const balance = {};
+      members.forEach(m => balance[m] = 0);
+      expenses.forEach(e => {
+        if (!(e.payer in balance)) balance[e.payer] = 0;
+        balance[e.payer] += e.amount;
+        const share = e.amount / e.sharers.length;
+        e.sharers.forEach(s => {
+          if (!(s in balance)) balance[s] = 0;
+          balance[s] -= share;
+        });
+      });
+
+      const transactions = computeSettlement(balance);
+
+      let html = '<div class="info-card"><div class="info-title">🧾 代墊明細</div>';
+      expenses.forEach(e => {
+        const share = Math.round(e.amount / e.sharers.length);
+        html += `<div class="expense-row">
+          <div class="expense-main">
+            <div class="expense-item">${esc(e.item)}</div>
+            <div class="expense-sub">${esc(e.date)}｜${esc(e.payer)} 代墊｜${esc(e.sharers.join('、'))} 分攤（每人 $${esc(share.toLocaleString())}）</div>
+          </div>
+          <div class="expense-amt">$${esc(e.amount.toLocaleString())}</div>
+        </div>`;
+      });
+      html += '</div>';
+
+      html += '<div class="info-card"><div class="info-title">💰 結算總覽</div>';
+      if (transactions.length === 0) {
+        html += '<p style="font-size:0.85rem; color:var(--muted);">目前帳務已結清 🎉</p>';
+      } else {
+        transactions.forEach(t => {
+          html += `<div class="settle-row"><span><strong>${esc(t.from)}</strong></span><span class="arrow">→ 付給 →</span><span><strong>${esc(t.to)}</strong></span><span class="amt">NT$ ${esc(t.amount.toLocaleString())}</span></div>`;
+        });
+      }
+      html += '<div style="margin-top:10px;">';
+      Object.keys(balance).forEach(name => {
+        const amt = Math.round(balance[name]);
+        const cls = amt > 0.5 ? 'pos' : (amt < -0.5 ? 'neg' : 'zero');
+        const label = amt > 0.5 ? `應收 $${amt.toLocaleString()}` : (amt < -0.5 ? `應付 $${Math.abs(amt).toLocaleString()}` : '已結清');
+        html += `<span class="balance-chip ${cls}">${esc(name)}：${label}</span>`;
+      });
+      html += '</div></div>';
+
+      document.getElementById('split-content').innerHTML = html;
+    }
+
+    async function init() {
+      try {
+        const [itiRows, transRows, rentRows, splitRows] = await Promise.all([
+          fetchCsv(CSV_URLS.itinerary),
+          fetchCsv(CSV_URLS.transport),
+          fetchCsv(CSV_URLS.rental),
+          fetchCsv(CSV_URLS.split)
+        ]);
+        // 副標題固定顯示日期/人數，不再抓A1（那格是給自己看的編輯備註，不適合顯示給訪客）
+        renderItinerary(itiRows);
+        renderStay(transRows);
+        renderRental(rentRows);
+        renderSplit(splitRows);
+        document.getElementById('sync-status').textContent = '✓ 已同步 Google 試算表最新內容';
+      } catch (e) {
+        document.getElementById('sync-status').textContent = '⚠ 同步失敗，顯示可能非最新內容';
+        document.getElementById('day-panels').innerHTML = `<div class="status-msg error">讀取試算表失敗：${esc(e.message)}<br>請確認Google試算表仍為「發佈到網路」狀態。</div>`;
+        console.error(e);
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
