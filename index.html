@@ -237,7 +237,8 @@
     function parseMapLinks(refLink) {
       if (!refLink) return [];
       // 同時支援「有 https:// 前綴」與「漏打 https:// 只寫 maps.app.goo.gl/xxx／goo.gl/xxx」兩種寫法
-      const urlRegex = /(?:https?:\/\/)?(?:maps\.app\.goo\.gl|goo\.gl|maps\.google\.com)\/[^\s|;，、]+/g;
+      // 修正網域為不限google map
+      const urlRegex = /https?:\/\/[^\s|;，、]+|(?:maps\.app\.goo\.gl|goo\.gl)\/[^\s|;，、]+/g;
       const matches = [...refLink.matchAll(urlRegex)];
       if (!matches.length) return [];
       const results = [];
