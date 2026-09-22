@@ -110,6 +110,12 @@
       border-radius: 10px; background: #e2e8f0; color: #475569; border: none; cursor: pointer;
     }
     .day-pill.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(0, 119, 182, 0.3); }
+    
+    .day-banner {
+      background: #fff7ed; border: 1px solid #fed7aa; color: #c2410c;
+      font-weight: 700; font-size: 0.85rem; text-align: center;
+      padding: 8px 12px; border-radius: 10px; margin-bottom: 10px;
+    }
 
     .info-card { background: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border); }
     .info-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; color: var(--primary); }
@@ -220,7 +226,12 @@
       D2: { label: 'Day 2 (10/2 Fri.)' },
       D3: { label: 'Day 3 (10/3 Sat.)' }
     };
-
+   
+    // 當天置頂的特殊提醒（不放在備註，直接顯示在該天最上面）
+    const DAY_BANNERS = {
+      D2: '👕 請穿制服'
+    };
+    
     function esc(s) {
       if (s === null || s === undefined) return '';
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -348,6 +359,12 @@
         panel.className = 'day-content';
         panel.id = 'day-' + dk;
         panel.style.display = idx === 0 ? 'block' : 'none';
+        if (DAY_BANNERS[dk]) {
+          const banner = document.createElement('div');
+          banner.className = 'day-banner';
+          banner.textContent = DAY_BANNERS[dk];
+          panel.appendChild(banner);
+        }
         const tl = document.createElement('div');
         tl.className = 'timeline';
         let html = '';
