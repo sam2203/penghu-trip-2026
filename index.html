@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>2026 澎湖秋旅手冊 (10/01 - 10/03)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
     :root {
       --primary: #0077b6;
@@ -137,6 +139,10 @@
     .status-msg { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 0.9rem; }
     .status-msg.error { color: #dc2626; }
 
+    #map-container { height: 62vh; min-height: 380px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); }
+    .leaflet-popup-content { font-size: 0.82rem; line-height: 1.5; }
+    .leaflet-popup-content a { color: var(--primary); font-weight: 600; }
+
     .settle-row {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 12px; background: #f0fdf4; border: 1px solid #bbf7d0;
@@ -195,6 +201,12 @@
       <div id="split-content"><div class="status-msg">載入中…</div></div>
     </section>
 
+    <section id="tab-map" class="tab-content">
+      <div class="day-pills" id="map-day-pills"></div>
+      <div class="status-msg" id="map-status">載入行程資料中…</div>
+      <div id="map-container" style="display:none;"></div>
+    </section>
+    
   </div>
 
   <nav class="bottom-bar">
@@ -203,6 +215,7 @@
     <button class="nav-btn" onclick="switchTab('rental', this)"><span class="icon">🚗</span>租車</button>
     <button class="nav-btn" onclick="switchTab('budget', this)"><span class="icon">💵</span>預算</button>
     <button class="nav-btn" onclick="switchTab('split', this)"><span class="icon">🧾</span>分帳</button>
+    <button class="nav-btn" onclick="switchTab('map', this)"><span class="icon">🗺️</span>地圖</button>
   </nav>
 
   <script>
@@ -232,6 +245,13 @@
       D2: '🥼 請穿制服'
     };
     
+    const DAY_COLORS = { D1: '#0077b6', D2: '#e67e22', D3: '#16a34a', D4: '#9333ea', D5: '#dc2626' };
+
+    let allDaysData = null;   // 行程分頁解析完的 {dayKeys, days}，地圖分頁共用
+    let leafletMap = null;
+    let dayLayers = {};
+    let mapInitialized = false;
+
     function esc(s) {
       if (s === null || s === undefined) return '';
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -320,7 +340,9 @@
       return n; // e.g. "自行斟酌", "全票 $40" style already in text
     }
 
-    function renderItinerary(rows) {
+    // 解析「行程」試算表原始列 → { dayKeys, days }，行程分頁與地圖分頁共用同一份資料，
+    // 不需要在試算表另外新增「地點」欄位，直接沿用既有的 地點/地址 + 參考連結 欄位。
+    function parseItineraryRows(rows) {
       // Column indices per known header: 天次,時間起,時間訖,時長,行程,地點/地址,備註,費用類別,費用估列,參考連結
       // 直接找「第一欄真的是 D1/D2/D3 這種資料」的那一列，不管前面有幾列標題／說明列，
       // 避免依賴固定列數或特定標題文字造成漏抓第一筆
@@ -344,6 +366,12 @@
         });
       }
       const dayKeys = Object.keys(days).sort();
+      return { dayKeys, days };
+    }
+
+    function renderItinerary(rows) {
+      const { dayKeys, days } = parseItineraryRows(rows);
+      allDaysData = { dayKeys, days }; // 供「地圖」分頁共用，避免重複解析/重抓試算表
       const pillsEl = document.getElementById('day-pills');
       const panelsEl = document.getElementById('day-panels');
       pillsEl.innerHTML = '';
@@ -401,6 +429,175 @@
       document.getElementById('tab-' + tabId).classList.add('active');
       el.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (tabId === 'map') initMapTab();
+    }
+
+    // ===== 地圖分頁：直接沿用「行程」分頁已解析的地點/地址 + 參考連結，不需要試算表另加欄位 =====
+
+    // 從 Google 地圖網址裡直接抓經緯度（不用等使用者填座標），依準確度排序嘗試：
+    // !3d..!4d.. 是地圖標記的精確座標；@lat,lng 是地圖置中點（次準）；q=/ll= 則是查詢座標寫法
+    function extractCoords(text) {
+      if (!text) return null;
+      let m = text.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+      if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+      m = text.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+      m = text.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+      m = text.match(/[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+      if (m) return [parseFloat(m[1]), parseFloat(m[2])];
+      return null;
+    }
+
+    // 找不到座標的地點（例如連結是縮短過的 maps.app.goo.gl，或根本沒放連結）
+    // 就用地點名稱＋地址向 OpenStreetMap 的免費地理編碼服務查詢，並快取在瀏覽器本機，
+    // 下次不用重查；依 Nominatim 使用規範，查詢逐一序列化、間隔約 1.1 秒。
+    const GEOCODE_CACHE_KEY = 'penghu_geocode_cache_v1';
+    function loadGeoCache() {
+      try { return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || '{}'); } catch (e) { return {}; }
+    }
+    function saveGeoCache(cache) {
+      try { localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache)); } catch (e) {}
+    }
+    let geoCache = loadGeoCache();
+    let geoQueue = Promise.resolve();
+    function geocode(query) {
+      if (query in geoCache) return Promise.resolve(geoCache[query]);
+      geoQueue = geoQueue.then(() => new Promise(resolve => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`)
+          .then(r => r.ok ? r.json() : [])
+          .then(list => {
+            const coords = (list && list[0]) ? [parseFloat(list[0].lat), parseFloat(list[0].lon)] : null;
+            geoCache[query] = coords;
+            saveGeoCache(geoCache);
+            setTimeout(() => resolve(coords), 1100);
+          })
+          .catch(() => { geoCache[query] = null; resolve(null); });
+      }));
+      return geoQueue;
+    }
+
+    function initMapTab() {
+      if (mapInitialized) return;
+      mapInitialized = true;
+      const statusEl = document.getElementById('map-status');
+      if (!window.L) {
+        statusEl.textContent = '地圖套件載入失敗，請檢查網路連線後重新整理';
+        statusEl.classList.add('error');
+        return;
+      }
+      if (!allDaysData) {
+        statusEl.textContent = '尚未載入行程資料，請稍候再切換到地圖分頁';
+        return;
+      }
+      statusEl.textContent = '定位各地點中…（第一次載入較慢，之後會記住結果）';
+
+      const { dayKeys, days } = allDaysData;
+      const pointsByDay = {};
+      const tasks = [];
+      dayKeys.forEach(dk => {
+        pointsByDay[dk] = [];
+        let seq = 0;
+        days[dk].forEach(item => {
+          if (isTransitRow(item.title, item.category)) return;
+          if (!item.title) return;
+          seq++;
+          const order = seq;
+          tasks.push((async () => {
+            let coords = extractCoords(item.refLink);
+            if (!coords) {
+              const q = [item.title, item.address, '澎湖', '台灣'].filter(Boolean).join(' ');
+              coords = await geocode(q);
+            }
+            if (coords) {
+              pointsByDay[dk].push({ order, coords, title: item.title, time: item.time1, address: item.address, refLink: item.refLink });
+            }
+          })());
+        });
+      });
+
+      Promise.all(tasks).then(() => {
+        const mapEl = document.getElementById('map-container');
+        const anyPoints = Object.values(pointsByDay).some(arr => arr.length);
+        if (!anyPoints) {
+          statusEl.textContent = '找不到任何地點座標，請確認試算表的地點/地址或參考連結欄位';
+          statusEl.classList.add('error');
+          return;
+        }
+        statusEl.style.display = 'none';
+        mapEl.style.display = 'block';
+
+        leafletMap = L.map(mapEl).setView([23.5711, 119.5793], 12); // 澎湖群島中心
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+        }).addTo(leafletMap);
+
+        dayLayers = {};
+        const allBounds = [];
+        dayKeys.forEach(dk => {
+          const pts = pointsByDay[dk].sort((a, b) => a.order - b.order);
+          const color = DAY_COLORS[dk] || '#475569';
+          const layerGroup = L.layerGroup();
+          const latlngs = [];
+          pts.forEach(p => {
+            latlngs.push(p.coords);
+            allBounds.push(p.coords);
+            const icon = L.divIcon({
+              className: '',
+              html: `<div style="background:${color};color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${p.order}</div>`,
+              iconSize: [24, 24], iconAnchor: [12, 12]
+            });
+            const marker = L.marker(p.coords, { icon });
+            const linkHtml = p.refLink
+              ? parseMapLinks(p.refLink).map(l => `<a href="${esc(l.url)}" target="_blank">${esc(l.label)}</a>`).join('　')
+              : '';
+            marker.bindPopup(`<strong>${esc(p.time || '')} ${esc(p.title)}</strong><br>${esc(p.address || '')}${linkHtml ? '<br>' + linkHtml : ''}`);
+            marker.addTo(layerGroup);
+          });
+          if (latlngs.length > 1) {
+            L.polyline(latlngs, { color, weight: 3, opacity: 0.6, dashArray: '6,6' }).addTo(layerGroup);
+          }
+          dayLayers[dk] = layerGroup;
+        });
+
+        Object.values(dayLayers).forEach(l => l.addTo(leafletMap));
+        if (allBounds.length) leafletMap.fitBounds(allBounds, { padding: [30, 30] });
+
+        buildMapDayFilters(dayKeys);
+      });
+    }
+
+    function buildMapDayFilters(dayKeys) {
+      const el = document.getElementById('map-day-pills');
+      el.innerHTML = '';
+      const allBtn = document.createElement('button');
+      allBtn.className = 'day-pill active';
+      allBtn.textContent = '全部';
+      allBtn.onclick = () => showMapDays(dayKeys, allBtn);
+      el.appendChild(allBtn);
+      dayKeys.forEach(dk => {
+        const btn = document.createElement('button');
+        btn.className = 'day-pill';
+        const fullLabel = (DAY_META[dk] && DAY_META[dk].label) || dk;
+        btn.textContent = fullLabel.replace(/\s*\(.*?\)/, '');
+        btn.onclick = () => showMapDays([dk], btn);
+        el.appendChild(btn);
+      });
+    }
+
+    function showMapDays(activeDays, btnEl) {
+      document.querySelectorAll('#map-day-pills .day-pill').forEach(p => p.classList.remove('active'));
+      btnEl.classList.add('active');
+      const bounds = [];
+      Object.keys(dayLayers).forEach(dk => {
+        if (activeDays.includes(dk)) {
+          dayLayers[dk].addTo(leafletMap);
+          dayLayers[dk].eachLayer(l => { if (l.getLatLng) bounds.push(l.getLatLng()); });
+        } else {
+          leafletMap.removeLayer(dayLayers[dk]);
+        }
+      });
+      if (bounds.length) leafletMap.fitBounds(bounds, { padding: [30, 30] });
     }
 
     function renderStay(rows) {
@@ -412,9 +609,6 @@
         if (!r) continue;
         if (r[1] && /^\d{4}-\d{2}-\d{2}$/.test((r[1]||'').trim())) {
           flightRows.push(r);
-        }
-        if (r[0] && r[0].trim() && r[1] && /^\d/.test((r[1]||'').trim()) === false && r[8] !== undefined && /評價/.test('') ) {
-          // handled below by header detection instead
         }
       }
       // lodging: find row right after a header row containing "google評價"
