@@ -340,10 +340,11 @@
       return n; // e.g. "自行斟酌", "全票 $40" style already in text
     }
 
-    // 解析「行程」試算表原始列 → { dayKeys, days }，行程分頁與地圖分頁共用同一份資料，
-    // 不需要在試算表另外新增「地點」欄位，直接沿用既有的 地點/地址 + 參考連結 欄位。
+    // 解析「行程」試算表原始列 → { dayKeys, days }，行程分頁與地圖分頁共用同一份資料。
+    // 地圖分頁優先用第 11 欄（K欄）「座標」欄位定位（選填，格式「緯度,經度」例如 23.5647,119.5640）；
+    // 沒填的話才退而求其次，嘗試從參考連結解析座標、或用地點名稱查詢（見下方地圖分頁說明）。
     function parseItineraryRows(rows) {
-      // Column indices per known header: 天次,時間起,時間訖,時長,行程,地點/地址,備註,費用類別,費用估列,參考連結
+      // Column indices per known header: 天次,時間起,時間訖,時長,行程,地點/地址,備註,費用類別,費用估列,參考連結,座標(選填)
       // 直接找「第一欄真的是 D1/D2/D3 這種資料」的那一列，不管前面有幾列標題／說明列，
       // 避免依賴固定列數或特定標題文字造成漏抓第一筆
       let startIdx = -1;
@@ -362,7 +363,8 @@
           time1: r[1] || '', time2: r[2] || '', dur: r[3] || '',
           title: (r[4] || '').trim(), address: (r[5] || '').trim(),
           notes: (r[6] || '').trim(), category: (r[7] || '').trim(),
-          costRaw: (r[8] || '').trim(), refLink: (r[9] || '').trim()
+          costRaw: (r[8] || '').trim(), refLink: (r[9] || '').trim(),
+          coordRaw: (r[10] || '').trim()
         });
       }
       const dayKeys = Object.keys(days).sort();
@@ -432,9 +434,16 @@
       if (tabId === 'map') initMapTab();
     }
 
-    // ===== 地圖分頁：直接沿用「行程」分頁已解析的地點/地址 + 參考連結，不需要試算表另加欄位 =====
+    // ===== 地圖分頁：定位順序為 ①試算表「座標」欄 → ②參考連結網址裡的座標 → ③用地點名稱查詢（best-effort） =====
+    // ①欄位裡若已經是「緯度,經度」格式，直接使用
 
-    // 從 Google 地圖網址裡直接抓經緯度（不用等使用者填座標），依準確度排序嘗試：
+    function parseCoordRaw(text) {
+      if (!text) return null;
+      const m = text.trim().match(/^(-?\d{1,3}(?:\.\d+)?)\s*[,，]\s*(-?\d{1,3}(?:\.\d+)?)$/);
+      if (!m) return null;
+      return [parseFloat(m[1]), parseFloat(m[2])];
+    }
+    // ②從 Google 地圖網址裡直接抓經緯度，依準確度排序嘗試：
     // !3d..!4d.. 是地圖標記的精確座標；@lat,lng 是地圖置中點（次準）；q=/ll= 則是查詢座標寫法
     function extractCoords(text) {
       if (!text) return null;
@@ -449,10 +458,18 @@
       return null;
     }
 
-    // 找不到座標的地點（例如連結是縮短過的 maps.app.goo.gl，或根本沒放連結）
-    // 就用地點名稱＋地址向 OpenStreetMap 的免費地理編碼服務查詢，並快取在瀏覽器本機，
+    // ③找不到座標時，用「乾淨的地點名稱」（去掉表情符號、去掉「早餐：」這類分類前綴）向 OpenStreetMap 的免費地理編碼服務查詢，並快取在瀏覽器本機，
     // 下次不用重查；依 Nominatim 使用規範，查詢逐一序列化、間隔約 1.1 秒。
-    const GEOCODE_CACHE_KEY = 'penghu_geocode_cache_v1';
+    function cleanTitleForGeocode(title) {
+      let t = (title || '').replace(/^[^一-鿿A-Za-z0-9]+/u, '').trim(); // 去掉開頭表情符號/符號
+      const parts = t.split(/[：:]/); // 「晚餐：668海鮮餐廳」→ 取冒號後的真正店名
+      t = parts[parts.length - 1].trim();
+      const parts2 = t.split(/[＋/／]/); // 「集合＋松山機場報到」這類複合標題，取最後一段
+      t = parts2[parts2.length - 1].trim();
+      return t;
+    }
+    
+    const GEOCODE_CACHE_KEY = 'penghu_geocode_cache_v2';
     function loadGeoCache() {
       try { return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY) || '{}'); } catch (e) { return {}; }
     }
@@ -461,7 +478,8 @@
     }
     let geoCache = loadGeoCache();
     let geoQueue = Promise.resolve();
-    function geocode(query) {
+    // 依 Nominatim 使用規範，查詢逐一序列化、間隔約 1.1 秒，並快取在瀏覽器本機下次不用重查
+      if (!query) return Promise.resolve(null);
       if (query in geoCache) return Promise.resolve(geoCache[query]);
       geoQueue = geoQueue.then(() => new Promise(resolve => {
         fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`)
@@ -490,10 +508,11 @@
         statusEl.textContent = '尚未載入行程資料，請稍候再切換到地圖分頁';
         return;
       }
-      statusEl.textContent = '定位各地點中…（第一次載入較慢，之後會記住結果）';
+      statusEl.textContent = '定位各地點中…（初次載入較慢）';
 
       const { dayKeys, days } = allDaysData;
       const pointsByDay = {};
+      const missedTitles = [];
       const tasks = [];
       dayKeys.forEach(dk => {
         pointsByDay[dk] = [];
@@ -504,13 +523,15 @@
           seq++;
           const order = seq;
           tasks.push((async () => {
-            let coords = extractCoords(item.refLink);
+            let coords = parseCoordRaw(item.coordRaw) || extractCoords(item.refLink);
             if (!coords) {
-              const q = [item.title, item.address, '澎湖', '台灣'].filter(Boolean).join(' ');
-              coords = await geocode(q);
+              const region = /澎湖/.test(item.address) ? '澎湖' : (/台北|松山/.test(item.address) ? '台北' : '台灣');
+              coords = await geocode([cleanTitleForGeocode(item.title), region].filter(Boolean).join(' '));
             }
             if (coords) {
               pointsByDay[dk].push({ order, coords, title: item.title, time: item.time1, address: item.address, refLink: item.refLink });
+            } else {
+              missedTitles.push(item.title);
             }
           })());
         });
@@ -519,10 +540,17 @@
       Promise.all(tasks).then(() => {
         const mapEl = document.getElementById('map-container');
         const anyPoints = Object.values(pointsByDay).some(arr => arr.length);
-        if (!anyPoints) {
-          statusEl.textContent = '找不到任何地點座標，請確認試算表的地點/地址或參考連結欄位';
+       if (!anyPoints) {
+          statusEl.innerHTML = '目前沒有任何地點能定位。';
           statusEl.classList.add('error');
           return;
+        }
+        if (missedTitles.length) {
+          const note = document.createElement('div');
+          note.className = 'status-msg';
+          note.style.cssText = 'padding:10px 4px; text-align:left; font-size:0.78rem;';
+          note.textContent = `⚠ 有 ${missedTitles.length} 個地點目前定位不到，未顯示在地圖上：${missedTitles.join('、')}。請確認「座標」資料`;
+          mapEl.insertAdjacentElement('beforebegin', note);
         }
         statusEl.style.display = 'none';
         mapEl.style.display = 'block';
