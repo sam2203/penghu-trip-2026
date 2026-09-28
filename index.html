@@ -245,7 +245,7 @@
     const DAY_BANNERS = {
       D2: '🥼 請穿制服'
     };
-
+    
     // 「地圖位點」按天次分色
     const DAY_COLORS = { D1: '#0077b6', D2: '#e67e22', D3: '#16a34a', D4: '#9333ea', D5: '#dc2626' };
     const DAY_LIGHT = { D1: '#C0E9FF', D2: '#FFE5CE', D3: '#DBFFE8', D4: '#EDE0FB', D5: '#FBDADA' };
@@ -537,15 +537,14 @@
       });
     }
 
-    // 按天分色；依按鈕目前是否 active，套用（或清除）該天次顏色的實心樣式
+    // 依按鈕目前是否 active，套用（或清除）該天次顏色的實心樣式（無外框，形狀/陰影同行程分頁按鈕）
     function applyMapPillColor(btn, color, lightColor) {
-      btn.style.border = `2px solid ${color}`;
       if (btn.classList.contains('active')) {
         btn.style.background = color;
         btn.style.color = '#fff';
         btn.style.boxShadow = `0 2px 8px ${color}4d`;
       } else {
-        btn.style.background = lightColor || '#fff';
+        btn.style.background = lightColor || '#e2e8f0';
         btn.style.color = color;
         btn.style.boxShadow = '';
       }
@@ -558,7 +557,7 @@
       const allLight = '#e2e8f0';
       const allBtn = document.createElement('button');
       allBtn.className = 'day-pill active';
-      allBtn.textContent = '全部';
+      allBtn.textContent = 'All';
       allBtn.dataset.color = allColor;
       allBtn.dataset.light = allLight;
       allBtn.onclick = () => showMapDays(dayKeys, allBtn);
@@ -698,7 +697,8 @@
           current = {
             shop, rating, addr, link, cars: [],
             close: function() {
-              let h = `<div class="info-card"><div class="info-title">🚗 ${esc(this.shop)}${this.rating ? ' ('+esc(this.rating)+'⭐)' : ''}</div>`;
+              const highlight = this.shop === '博明國際租賃有限公司';
+              let h = `<div class="info-card"${highlight ? ' style="border: 2px solid var(--primary);"' : ''}><div class="info-title">🚗 ${esc(this.shop)}${this.rating ? ' ('+esc(this.rating)+'⭐)' : ''}</div>`;
               if (this.addr) h += `<div class="info-sub">${esc(this.addr)}</div>`;
               this.cars.forEach(c => { h += `<p style="font-size:0.85rem;"><strong>${esc(c.car)}：</strong>${esc(c.price)}</p>`; });
               if (this.link) h += `<a href="${this.link}" target="_blank" class="btn-maps">🔗 車行資訊</a>`;
