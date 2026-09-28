@@ -245,8 +245,10 @@
     const DAY_BANNERS = {
       D2: '🥼 請穿制服'
     };
-    
+
+    // 「地圖位點」按天次分色
     const DAY_COLORS = { D1: '#0077b6', D2: '#e67e22', D3: '#16a34a', D4: '#9333ea', D5: '#dc2626' };
+    const DAY_LIGHT = { D1: '#C0E9FF', D2: '#FFE5CE', D3: '#DBFFE8', D4: '#EDE0FB', D5: '#FBDADA' };
 
     let leafletMap = null;
     let dayLayers = {};
@@ -499,16 +501,20 @@
         dayKeys.forEach(dk => {
           const pts = pointsByDay[dk];
           const color = DAY_COLORS[dk] || '#475569';
+          const lightColor = DAY_LIGHT[dk] || '#f1f5f9';
           const layerGroup = L.layerGroup();
           const latlngs = [];
           pts.forEach(p => {
             latlngs.push(p.coords);
             allBounds.push(p.coords);
-            const label = p.icon || String(p.order);
+            // 調整地圖圖示及配色：有填圖示→主色外框+淺色底，避免圖示不明顯，無圖示→顯示主色+白色序位數字
+            const html = p.icon
+              ? `<div style="background:${lightColor};border:3px solid ${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,0.35);">${esc(p.icon)}</div>`
+              : `<div style="background:${color};color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${p.order}</div>`;
             const icon = L.divIcon({
               className: '',
-              html: `<div style="background:${color};color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${p.icon ? '13px' : '12px'};font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);">${esc(label)}</div>`,
-              iconSize: [26, 26], iconAnchor: [13, 13]
+              html,
+              iconSize: p.icon ? [30, 30] : [26, 26], iconAnchor: p.icon ? [15, 15] : [13, 13]
             });
             const marker = L.marker(p.coords, { icon });
             marker.bindPopup(`<strong>${p.order}. ${esc(p.name)}</strong>`);
@@ -531,27 +537,55 @@
       });
     }
 
+    // 按天分色；依按鈕目前是否 active，套用（或清除）該天次顏色的實心樣式
+    function applyMapPillColor(btn, color, lightColor) {
+      btn.style.border = `2px solid ${color}`;
+      if (btn.classList.contains('active')) {
+        btn.style.background = color;
+        btn.style.color = '#fff';
+        btn.style.boxShadow = `0 2px 8px ${color}4d`;
+      } else {
+        btn.style.background = lightColor || '#fff';
+        btn.style.color = color;
+        btn.style.boxShadow = '';
+      }
+    }
+
     function buildMapDayFilters(dayKeys) {
       const el = document.getElementById('map-day-pills');
       el.innerHTML = '';
+      const allColor = '#475569';
+      const allLight = '#e2e8f0';
       const allBtn = document.createElement('button');
       allBtn.className = 'day-pill active';
       allBtn.textContent = '全部';
+      allBtn.dataset.color = allColor;
+      allBtn.dataset.light = allLight;
       allBtn.onclick = () => showMapDays(dayKeys, allBtn);
+      applyMapPillColor(allBtn, allColor, allLight);
       el.appendChild(allBtn);
       dayKeys.forEach(dk => {
         const btn = document.createElement('button');
         btn.className = 'day-pill';
         const fullLabel = (DAY_META[dk] && DAY_META[dk].label) || dk;
         btn.textContent = fullLabel.replace(/\s*\(.*?\)/, '');
+        const color = DAY_COLORS[dk] || '#475569';
+        const lightColor = DAY_LIGHT[dk] || '#f1f5f9';
+        btn.dataset.color = color;
+        btn.dataset.light = lightColor;
         btn.onclick = () => showMapDays([dk], btn);
+        applyMapPillColor(btn, color, lightColor);
         el.appendChild(btn);
       });
     }
 
     function showMapDays(activeDays, btnEl) {
-      document.querySelectorAll('#map-day-pills .day-pill').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('#map-day-pills .day-pill').forEach(p => {
+        p.classList.remove('active');
+        applyMapPillColor(p, p.dataset.color || '#475569', p.dataset.light);
+      });
       btnEl.classList.add('active');
+      applyMapPillColor(btnEl, btnEl.dataset.color || '#475569');
       const bounds = [];
       Object.keys(dayLayers).forEach(dk => {
         if (activeDays.includes(dk)) {
@@ -787,7 +821,7 @@
           fetchCsv(CSV_URLS.rental),
           fetchCsv(CSV_URLS.split)
         ]);
-        // 副標題固定顯示日期/人數，不再抓A1（那格是給自己看的編輯備註，不適合顯示給訪客）
+        // 副標題固定顯示日期/人數，不抓A1
         renderItinerary(itiRows);
         renderStay(transRows);
         renderRental(rentRows);
