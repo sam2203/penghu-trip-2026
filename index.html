@@ -166,7 +166,7 @@
     .packing-item .packing-text {
       flex: 1; min-width: 0; word-break: break-word; overflow-wrap: anywhere;
     }
-    .packing-note { color: var(--muted); font-size: 0.78rem; display: block; margin-top: 2px; }
+    .packing-note { color: var(--muted); font-size: 0.78rem; }
 
     .status-msg { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 0.9rem; }
     .status-msg.error { color: #dc2626; }
@@ -807,7 +807,7 @@
         html += `<div class="facility-group-title">${esc(g.category)}</div>`;
         g.items.forEach(it => {
           const icon = PACKING_ICONS[it.necessity] || GRAY_DOT;
-          html += `<div class="packing-item"><span class="icon">${icon}</span><span class="packing-text">${esc(it.item)}${it.note ? `<span class="packing-note">${esc(it.note)}</span>` : ''}</span></div>`;
+          html += `<div class="packing-item"><span class="icon">${icon}</span><span class="packing-text">${esc(it.item)}${it.note ? ` <span class="packing-note">（${esc(it.note)}）</span>` : ''}</span></div>`;
         });
       });
       document.getElementById('packing-content').innerHTML = html;
