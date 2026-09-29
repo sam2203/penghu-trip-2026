@@ -163,7 +163,10 @@
     }
     .packing-item:last-child { border-bottom: none; }
     .packing-item .icon { flex-shrink: 0; font-size: 0.9rem; line-height: 1.4; }
-    .packing-note { color: var(--muted); font-size: 0.78rem; }
+    .packing-item .packing-text {
+      flex: 1; min-width: 0; word-break: break-word; overflow-wrap: anywhere;
+    }
+    .packing-note { color: var(--muted); font-size: 0.78rem; display: block; margin-top: 2px; }
 
     .status-msg { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 0.9rem; }
     .status-msg.error { color: #dc2626; }
@@ -240,17 +243,17 @@
       <div class="info-card">
         <div class="info-title">🌤️ 出發前天氣參考</div>
         <div class="info-sub">澎湖縣・截至 9/29 中央氣象署一週預報（僅供參考，實際請以出發前最新預報為準）</div>
-        <table style="width:100%; font-size:0.82rem; border-collapse:collapse; text-align:center;">
+        <table style="width:100%; font-size:0.82rem; border-collapse:collapse; text-align:left;">
           <tr style="color:var(--muted);"><td></td><td><strong>10/1（四）</strong></td><td><strong>10/2（五）</strong></td><td><strong>10/3（六）</strong></td></tr>
-          <tr><td style="text-align:left; color:var(--muted);">白天</td><td>☀️ 26-31°C</td><td>☀️ 27-30°C</td><td>⛅ 26-30°C</td></tr>
-          <tr><td style="text-align:left; color:var(--muted);">晚上</td><td>🌧️ 27-28°C</td><td>🌙 26-27°C</td><td>🌙 26-27°C</td></tr>
-          <tr><td style="text-align:left; color:var(--muted);">紫外線</td><td>🔆 9 危險</td><td>🔆 7 高</td><td>🔆 8 危險</td></tr>
+          <tr><td style="color:var(--muted);">白天</td><td>☀️ 26-31°C</td><td>☀️ 27-30°C</td><td>⛅ 26-30°C</td></tr>
+          <tr><td style="color:var(--muted);">晚上</td><td>🌧️ 27-28°C</td><td>🌙 26-27°C</td><td>🌙 26-27°C</td></tr>
+          <tr><td style="color:var(--muted);">紫外線</td><td>🔆 9 危險</td><td>🔆 7 高</td><td>🔆 8 危險</td></tr>
         </table>
         <p style="font-size:0.75rem; color:var(--muted); margin-top:8px;">整體天氣穩定舒適偏悶熱，降雨機率低，紫外線偏高，請務必加強防曬。</p>
       </div>
 
       <div class="info-card">
-        <div class="info-title">🎒必備物品清單</div>
+        <div class="info-title">🎒 必備物品清單</div>
         <div id="packing-content"><div class="status-msg" id="packing-status">載入必備物品清單中…</div></div>
       </div>
 
@@ -766,7 +769,7 @@
 
     // ===== 「提醒」分頁：必備物品清單，來自「必備物品」分頁：類別,必要性,項目,備註 =====
     const GRAY_DOT = '<span style="display:inline-block;width:0.75em;height:0.75em;border-radius:50%;background:#9ca3af;vertical-align:middle;"></span>';
-    const PACKING_ICONS = { '必要': '🔴', '建議': '🟡', '視個人需要':'🔵' };
+    const PACKING_ICONS = { '必要': '🔴', '建議': '🟡', '視個人需要': '🔵' };
 
     function parsePackingRows(rows) {
       let startIdx = -1;
@@ -804,7 +807,7 @@
         html += `<div class="facility-group-title">${esc(g.category)}</div>`;
         g.items.forEach(it => {
           const icon = PACKING_ICONS[it.necessity] || GRAY_DOT;
-          html += `<div class="packing-item"><span class="icon">${icon}</span><span>${esc(it.item)}${it.note ? ` <span class="packing-note">（${esc(it.note)}）</span>` : ''}</span></div>`;
+          html += `<div class="packing-item"><span class="icon">${icon}</span><span class="packing-text">${esc(it.item)}${it.note ? `<span class="packing-note">${esc(it.note)}</span>` : ''}</span></div>`;
         });
       });
       document.getElementById('packing-content').innerHTML = html;
